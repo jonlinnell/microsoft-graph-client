@@ -16,10 +16,8 @@ app.set('view engine', 'pug');
 app.use(bodyParser.json());
 app.use('/token', tokenRoute);
 
-process.env.TEST = 'hi';
-
-app.get('/test', (req, res) => {
-  get('/users/rsrc.cal.ll.lulevnts@lboro.ac.uk/calendar/events')
+app.get('/me', (req, res) => {
+  get('/me')
     .then(data => {
       res.json(data);
     })
@@ -28,4 +26,5 @@ app.get('/test', (req, res) => {
     });
 });
 
-app.listen(PORT, () => console.log(`listening on ${PORT}...`));
+// eslint-disable-next-line no-console
+app.listen(PORT, () => console.log(`Listening on ${PORT}...`));
