@@ -2,6 +2,8 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const moment = require('moment');
+const sh = require('string-hash');
+const cache = require('memory-cache');
 
 const paths = require('../paths');
 
@@ -27,9 +29,11 @@ const getToken = () =>
       const token = fs.readFileSync(paths.token);
       const decodedToken = jwt.decode(token);
 
-      if (moment(decodedToken.exp * 1000).isBefore(moment())) {
+      const decodedTokenExpiry = moment(decodedToken.exp * 1000);
+
+      if (decodedTokenExpiry.isBefore(moment())) {
         debug(
-          `Token has expired (${moment(decodedToken.exp).format(
+          `Token has expired (${decodedTokenExpiry.format(
             'DD MM YYYY, HH mm ss'
           )} is older than ${moment().format('DD MM YYYY, HH mm ss')}`
         );
@@ -75,15 +79,28 @@ const getToken = () =>
 const get = endpoint =>
   new Promise((resolve, reject) => {
     getToken()
-      .then(token =>
-        axios
-          .get(`${api}${endpoint}`, {
-            headers: { authorization: `Bearer ${token}` },
-            debug: process.env.NODE_ENV === 'development',
-          })
-          .then(response => resolve(response.data))
-          .catch(error => reject(error))
-      )
+      .then(token => {
+        const { upn } = jwt.decode(token);
+        const cacheKey = sh(`${upn}_${endpoint}`);
+        const cachedData = cache.get(cacheKey);
+
+        if (cachedData) {
+          debug(`Cached data found (key: ${cacheKey}). Returning cached data.`);
+          resolve(cachedData);
+        } else {
+          axios
+            .get(`${api}${endpoint}`, {
+              headers: { authorization: `Bearer ${token}` },
+              debug: process.env.NODE_ENV === 'development',
+            })
+            .then(response => {
+              debug(`No cache found for key: ${cacheKey}. Returning fresh data.`);
+              cache.put(cacheKey, response.data, 5 * 60 * 1000);
+              resolve(response.data);
+            })
+            .catch(error => reject(error));
+        }
+      })
       .catch(error => reject(error));
   });
 
