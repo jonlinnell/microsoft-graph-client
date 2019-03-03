@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const { get } = require('./helpers/api');
 
 const tokenRoute = require('./routes/token');
+const eventsRoute = require('./routes/events');
 
 const { PORT } = process.env;
 
@@ -14,7 +15,9 @@ app.set('views', `${__dirname}/views`);
 app.set('view engine', 'pug');
 
 app.use(bodyParser.json());
+
 app.use('/token', tokenRoute);
+app.use('/events', eventsRoute);
 
 app.get('/me', (req, res) => {
   get('/me')
