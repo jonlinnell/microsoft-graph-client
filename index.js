@@ -22,7 +22,7 @@ app.get('/me', (req, res) => {
       res.json(data);
     })
     .catch(error => {
-      res.json(error);
+      res.send(error.toString());
     });
 });
 
